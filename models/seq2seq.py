@@ -5,9 +5,10 @@ from models.beam import *
 
 
 class Seq2seq(nn.Module):
-    def __init__(self, encoder, decoder, config):
+    def __init__(self, encoder, cnn, decoder, config):
         super().__init__()
         self.encoder = encoder
+        self.cnn = cnn
         self.decoder = decoder
         self.bos = config.bos
         self.s_len = config.s_len
@@ -18,6 +19,9 @@ class Seq2seq(nn.Module):
 
         self.linear_out = nn.Linear(config.hidden_size, config.vocab_size)
         self.softmax = nn.Softmax(dim=-1)
+
+        # add cnn out
+        self.linear_cnn = nn.Linear(config.hidden_size*2, config.hidden_size)
 
     # add <bos> to sentence
     def convert(self, x):
@@ -52,6 +56,9 @@ class Seq2seq(nn.Module):
         :return:
         """
         h, encoder_out = self.encoder(x)
+        cnn_out = self.cnn(x)
+        hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
+        h = (hidden, h[1])
 
         # add <bos>
         y_c = self.convert(y)

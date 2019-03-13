@@ -142,7 +142,7 @@ if __name__ == '__main__':
     vocab = Vocab(config)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', '-b', type=int, default=64, help='batch size for train')
+    parser.add_argument('--batch_size', '-b', type=int, default=256, help='batch size for train')
     parser.add_argument('--epoch', '-e', type=int, default=20, help='number of training epochs')
     parser.add_argument('--n_layers', '-n', type=int, default=2, help='number of gru layers')
     parser.add_argument('-seed', '-s', type=int, default=123, help="Random seed")

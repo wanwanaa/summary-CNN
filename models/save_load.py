@@ -1,13 +1,15 @@
 from models.attention import *
 from models.rnn import *
 from models.seq2seq import *
+from models.cnn import *
 
 
 def build_model(config):
     embeds = Embeds(config)
     encoder = Encoder(embeds, config)
+    cnn = Encoder_cnn(embeds, config)
     decoder = Decoder(embeds, config)
-    model = Seq2seq(encoder, decoder, config)
+    model = Seq2seq(encoder, cnn, decoder, config)
     return model
 
 

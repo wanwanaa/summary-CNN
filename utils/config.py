@@ -37,7 +37,7 @@ class Config():
 
         # Hyper Parameters
         self.LR = 0.0003
-        self.batch_size = 64
+        self.batch_size = 256
         self.iters = 10000
         self.embedding_dim = 512
         self.hidden_size = 512
