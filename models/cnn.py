@@ -37,6 +37,6 @@ class Encoder_cnn(nn.Module):
         out = self.conv2(out)
 
         out = out.view(x.size(0), -1)
-        out = self.linear_out(out).view(-1, 1, self.hidden_size)
-        out = out.repeat(1, self.n_layer, 1)
+        out = self.linear_out(out).view(1, -1, self.hidden_size)
+        out = out.repeat(self.n_layer, 1, 1)
         return out

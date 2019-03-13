@@ -88,6 +88,9 @@ class Seq2seq(nn.Module):
 
     def sample(self, x, y):
         h, encoder_out = self.encoder(x)
+        cnn_out = self.cnn(x)
+        hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
+        h = (hidden, h[1])
         out = torch.ones(x.size(0)) * self.bos
         result = []
         idx = []
@@ -121,6 +124,9 @@ class Seq2seq(nn.Module):
 
     def beam_search(self, x):
         h, encoder_out = self.encoder(x)
+        cnn_out = self.cnn(x)
+        hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
+        h = (hidden, h[1])
         encoder_out = encoder_out.repeat(1, self.beam_size, 1).view(-1, self.config.t_len, self.config.hidden_size)
         # initial beam
         beam = []
