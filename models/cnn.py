@@ -12,29 +12,67 @@ class Encoder_cnn(nn.Module):
         self.n_layer = config.n_layer
         self.t_len = config.t_len
 
+        # nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
         # convolution
         self.conv1 = nn.Sequential(
-            nn.Conv2d(1, 8, 5, 1, 2),
+            nn.Conv1d(self.hidden_size, self.hidden_size, 1, 1, 0),
+            nn.BatchNorm1d(config.hidden_size),
             nn.ReLU(),
-            nn.MaxPool2d(4)
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(8, 8, 5, 1, 2),
+            nn.Conv1d(self.hidden_size, self.hidden_size, 3, 1, 1),
+            nn.BatchNorm1d(config.hidden_size),
             nn.ReLU(),
-            nn.MaxPool2d(4)
+        )
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(self.hidden_size, self.hidden_size, 3, 1, 1),
+            nn.BatchNorm1d(config.hidden_size),
+            nn.ReLU()
         )
 
+        # ############# channel ################
+        # self.conv1 = nn.Sequential(
+        #     nn.Conv2d(1, 1, 3, 1, 1),
+        #     nn.BatchNorm2d(config.hidden_size),
+        #     nn.ReLU()
+        # )
+        # self.conv2 = nn.Sequential(
+        #     nn.Conv2d(1, 1, 3, 1, 1),
+        #     nn.BatchNorm2d(config.hidden_size),
+        #     nn.ReLU(),
+        # )
+        # self.conv3 = nn.Sequential(
+        #     nn.Conv2d(self.t_len, 1, 1, 1, 0),
+        #     nn.BatchNorm2d(config.hidden_size),
+        #     nn.ReLU(),
+        # )
+        # #######################################
+
+        # GLU
+        self.input = nn.Sequential(
+            nn.Linear(self.hidden_size, self.hidden_size*2),
+            nn.GLU()
+        )
         # Linear
-        size = int(8*self.hidden_size/16*(self.t_len//16))
-        self.linear_out = nn.Linear(size, self.hidden_size)
+        self.linear_out = nn.Sequential(
+            nn.Linear(self.hidden_size*self.t_len, self.hidden_size*4),
+            nn.Linear(self.hidden_size*4, self.hidden_size)
+        )
 
     def forward(self, x):
-        # e(batch, 1(in channel), t_len, hidden_size)
-        e = self.embeds(x).unsqueeze(1)
-        # (batch, out channel, t_len/2, hidden_size/2)
+        # e(batch, t_len, hidden_size)
+        e = self.embeds(x)
+
+        # ########### channel ###########
+        # e = self.embeds(x).unsqueeze(2)
+        # ###############################
+
+        e = self.input(e).transpose(1, 2)
+
+        # (batch, out channel, t_len, hidden_size)
         out = self.conv1(e)
-        # (batch, out channel, t_len/4, hidden_size/4)
         out = self.conv2(out)
+        out = self.conv3(out)
 
         out = out.view(x.size(0), -1)
         out = self.linear_out(out).view(1, -1, self.hidden_size)
