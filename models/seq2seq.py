@@ -20,7 +20,7 @@ class Seq2seq(nn.Module):
         self.linear_out = nn.Linear(config.hidden_size, config.vocab_size)
         self.softmax = nn.Softmax(dim=-1)
 
-        # add cnn out
+        # add cnn out (context)
         self.linear_cnn = nn.Linear(config.hidden_size*2, config.hidden_size)
 
     # add <bos> to sentence
@@ -57,8 +57,12 @@ class Seq2seq(nn.Module):
         """
         h, encoder_out = self.encoder(x)
         cnn_out = self.cnn(x)
-        hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
-        h = (hidden, h[1])
+
+        # connect
+        if self.config.cnn == 1:
+            hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
+            h = (hidden, h[1])
+            cnn_out = None
 
         # add <bos>
         y_c = self.convert(y)
@@ -73,7 +77,7 @@ class Seq2seq(nn.Module):
         else:
             outs = None
         for i in range(self.s_len):
-            _, out, h = self.decoder(y_c[:, i], h, encoder_out, outs)
+            _, out, h = self.decoder(y_c[:, i], h, encoder_out, cnn_out, outs)
             if self.config.intra_decoder:
                 if i == 0:
                     outs = h[0].transpose(0, 1)[:, 1, :].unsqueeze(1)
@@ -89,8 +93,12 @@ class Seq2seq(nn.Module):
     def sample(self, x, y):
         h, encoder_out = self.encoder(x)
         cnn_out = self.cnn(x)
-        hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
-        h = (hidden, h[1])
+
+        if self.config.cnn_cat == 1:
+            hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
+            h = (hidden, h[1])
+            cnn_out = None
+
         out = torch.ones(x.size(0)) * self.bos
         result = []
         idx = []
@@ -106,7 +114,7 @@ class Seq2seq(nn.Module):
                 out = out.type(torch.cuda.LongTensor)
             else:
                 out = out.type(torch.LongTensor)
-            _, out, h = self.decoder(out, h, encoder_out, outs)
+            _, out, h = self.decoder(out, h, encoder_out, cnn_out, outs)
             if self.config.intra_decoder:
                 if i == 0:
                     outs = h[0].transpose(0, 1)[:, 1, :].unsqueeze(1)
@@ -125,9 +133,16 @@ class Seq2seq(nn.Module):
     def beam_search(self, x):
         h, encoder_out = self.encoder(x)
         cnn_out = self.cnn(x)
-        hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
-        h = (hidden, h[1])
+
+        if self.config.cnn_cat == 1:
+            hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
+            h = (hidden, h[1])
+            cnn_out = None
+
         encoder_out = encoder_out.repeat(1, self.beam_size, 1).view(-1, self.config.t_len, self.config.hidden_size)
+        if cnn_out:
+            cnn_out = cnn_out.repeat(1, self.beam_size, 1).view(-1, self.config.t_len, self.config.hidden_size)
+
         # initial beam
         beam = []
         for i in range(x.size(0)):
@@ -168,7 +183,7 @@ class Seq2seq(nn.Module):
 
             # out (batch_size*beam_size, 1, vocab_size)
             # h (n_layer, batch_size*beam_size, hidden_size)
-            _, out, h = self.decoder(out, h, encoder_out, outs)
+            _, out, h = self.decoder(out, h, encoder_out, cnn_out, outs)
 
             if self.config.intra_decoder:
                 if i == 0:

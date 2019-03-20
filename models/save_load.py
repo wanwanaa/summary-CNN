@@ -7,7 +7,10 @@ from models.cnn import *
 def build_model(config):
     embeds = Embeds(config)
     encoder = Encoder(embeds, config)
-    cnn = Encoder_cnn(embeds, config)
+    if config.cnn == 1:
+        cnn = Encoder_cnn(embeds, config)
+    if config.cnn == 2:
+        cnn = Encoder_pos(embeds, config)
     decoder = Decoder(embeds, config)
     model = Seq2seq(encoder, cnn, decoder, config)
     return model

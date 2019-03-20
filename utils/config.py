@@ -41,7 +41,7 @@ class Config():
         self.iters = 10000
         self.embedding_dim = 512
         self.hidden_size = 512
-        self.beam_size = 2
+        self.beam_size = 10
 
         self.n_layer = 2
         self.cell = 'lstm'
@@ -50,3 +50,6 @@ class Config():
         self.bidirectional = True
         self.optimzer = 'Adam'
         self.intra_decoder = False
+        self.cnn = 2 # cnn=0: no cnn
+                     # cnn=1: cat
+                     # cnn=2: prob

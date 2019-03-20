@@ -77,6 +77,7 @@ class Decoder(nn.Module):
         self.attn_flag = config.attn_flag
         self.cell = config.cell
         self.intra_decoder = config.intra_decoder
+        self.cnn = config.cnn
 
         if config.cell == 'lstm':
             self.rnn = nn.LSTM(
@@ -101,16 +102,31 @@ class Decoder(nn.Module):
             self.attention = Luong_Attention(config)
         else:
             self.attention = None
+
+        # cnn prob
+        if config.cnn == 2:
+            self.linear_enc = nn.Sequential(
+                nn.Linear(config.hidden_size, config.hidden_size),
+                nn.SELU(),
+                nn.Linear(config.hidden_size, config.hidden_size)
+            )
+            self.linear_h = nn.Sequential(
+                nn.Linear(config.hidden_size, config.hidden_size),
+                nn.SELU(),
+                nn.Linear(config.hidden_size, config.hidden_size)
+            )
+
         # intra-decoder
         if self.intra_decoder:
             self.intra_attention = Luong_Attention(config)
             self.linear_intra = nn.Linear(config.hidden_size*2, config.hidden_size)
 
-    def forward(self, x, h, encoder_output, outs):
+    def forward(self, x, h, encoder_output, cnn_out, outs):
         """
         :param x: (batch, 1) decoder input
         :param h: (batch, n_layer, hidden_size)
         :param encoder_output: (batch, t_len, hidden_size) encoder hidden state
+        :param cnn_out: (batch, t_len, hidden_size)
         :return: attn_weight (batch, 1, time_step)
                   out (batch, 1, hidden_size) decoder output
                   h (batch, n_layer, hidden_size) decoder hidden state
@@ -123,6 +139,20 @@ class Decoder(nn.Module):
             else:
                 attn_weights, e = self.attention(e, h, encoder_output)
         out, h = self.rnn(e, h)
+
+        # cnn prob
+        if self.cnn == 2:
+            # (batch, t_len, hidden_size)
+            encoder = self.linear_enc(encoder_output)
+            if self.cell == 'lstm':
+                # (batch, hidden_size, 1)
+                h_cnn = self.linear_enc(h[0][-1]).unsqueeze(2)
+            else:
+                h_cnn = self.linear_enc(h[-1]).unsqueeze(2)
+            # (batch, t_len, 1)
+            prob = torch.bmm(encoder, h_cnn)
+
+            encoder_output = prob*encoder_output + (1-prob)*cnn_out
 
         if self.attn_flag == 'luong':
             attn_weights, out = self.attention(out, encoder_output)
