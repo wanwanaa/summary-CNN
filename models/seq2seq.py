@@ -113,7 +113,7 @@ class Seq2seq(nn.Module):
         if self.config.rl != 0:
             baseline = torch.stack(baseline).transpose(0, 1)
             loss_lr = self.rl_loss(baseline, outputs, y)
-        if self.config.r1 == 2:
+        if self.config.rl == 2:
             loss = loss + loss_lr
         return loss, outputs
 

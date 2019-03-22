@@ -164,7 +164,14 @@ if __name__ == '__main__':
     # rouge initalization
     open(config.filename_rouge, 'w')
 
+    # load
     model = build_model(config, vocab.idx2word)
+
+    # # load model reinforcement learning
+    # filename = config.filename_model + 'model_10.pkl'
+    # model = build_model(config, vocab.idx2word)
+    # model.load_state_dict(torch.load(filename)
+
     if torch.cuda.is_available():
         model = model.cuda()
 

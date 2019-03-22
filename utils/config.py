@@ -54,7 +54,7 @@ class Config():
                      # cnn=1: cat
                      # cnn=2: prob
         # reinforcement learning
-        self.rl = 2 # 0: ML
+        self.rl = 0 # 0: ML
                     # 1: RL
                     # 2: ML+RL
         self.r = 0.99
