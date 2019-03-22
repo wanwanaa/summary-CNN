@@ -2,10 +2,11 @@ import torch
 import torch.nn as nn
 import numpy as np
 from models.beam import *
+from models.rouge import rouge_l
 
 
 class Seq2seq(nn.Module):
-    def __init__(self, encoder, cnn, decoder, config):
+    def __init__(self, encoder, cnn, decoder, config, idx2word):
         super().__init__()
         self.encoder = encoder
         self.cnn = cnn
@@ -14,6 +15,7 @@ class Seq2seq(nn.Module):
         self.s_len = config.s_len
         self.beam_size = config.beam_size
         self.config = config
+        self.idx2word = idx2word
 
         self.loss_func = nn.CrossEntropyLoss()
 
@@ -49,6 +51,23 @@ class Seq2seq(nn.Module):
         loss = self.loss_func(result, y)
         return loss
 
+    def rl_loss(self, baseline, result, y):
+        b = torch.nn.functional.softmax(baseline, -1)
+        b = torch.argmax(b, dim=-1) # (batch, len)
+        r = torch.nn.functional.softmax(result, -1)
+        r = torch.argmax(r, dim=-1)
+
+        scorce_b = rouge_l(b, y, self.idx2word)
+        scorce_f = rouge_l(r, y, self.idx2word)
+
+        result = result.contiguous().view(-1, 4000)
+        y = y.contiguous().view(-1)
+
+        loss_ml = self.loss_func(result, y)
+        loss_lr = (scorce_f-scorce_b)*loss_ml
+        loss = self.config.r*loss_lr+(1-self.config.r)*loss_ml
+        return loss
+
     def forward(self, x, y):
         """
         :param x: (batch, t_len) encoder input
@@ -69,6 +88,7 @@ class Seq2seq(nn.Module):
 
         # decoder
         result = []
+        baseline = []
         if self.config.intra_decoder:
             if torch.cuda.is_available():
                 outs = torch.zeros(x.size(0), 1, self.config.hidden_size).type(torch.cuda.FloatTensor)
@@ -77,7 +97,7 @@ class Seq2seq(nn.Module):
         else:
             outs = None
         for i in range(self.s_len):
-            _, out, h = self.decoder(y_c[:, i], h, encoder_out, cnn_out, outs)
+            _, b, out, h = self.decoder(y_c[:, i], h, encoder_out, cnn_out, outs)
             if self.config.intra_decoder:
                 if i == 0:
                     outs = h[0].transpose(0, 1)[:, 1, :].unsqueeze(1)
@@ -85,9 +105,16 @@ class Seq2seq(nn.Module):
                     outs = torch.cat((outs, h[0].transpose(0, 1)[:, 1, :].unsqueeze(1)), dim=1)
             gen = self.output_layer(out).squeeze()
             result.append(gen)
+            if self.config.rl != 0:
+                baseline.append(self.output_layer(b).squeeze())
 
         outputs = torch.stack(result).transpose(0, 1)
         loss = self.compute_loss(outputs, y)
+        if self.config.rl != 0:
+            baseline = torch.stack(baseline).transpose(0, 1)
+            loss_lr = self.rl_loss(baseline, outputs, y)
+        if self.config.r1 == 2:
+            loss = loss + loss_lr
         return loss, outputs
 
     def sample(self, x, y):

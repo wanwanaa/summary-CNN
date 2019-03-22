@@ -1,4 +1,7 @@
+import numpy as np
+from utils.dict import index2sentence
 from rouge import FilesRouge
+from rouge import Rouge
 
 
 def rouge_score(filename_gold, filename_result):
@@ -23,3 +26,25 @@ def write_rouge(filename, score, epoch):
         f.write(a)
         f.write('\n'.join(rouge))
         f.write('\n\n')
+
+
+def rouge_l(result, gold, idx2word):
+    """
+    :param result: (batch, len)
+    :param gold: (batch, len)
+    :return: Rouge-L
+    """
+    scores = 0
+    rouge = Rouge()
+    result = np.array(result)
+    gold = np.array(gold)
+    for i in range(result.shape[0]):
+        hyp = index2sentence(list(result[i]), idx2word)
+        hyp = ' '.join(hyp)
+        ref = index2sentence(list(gold[i]), idx2word)
+        ref = ' '.join(ref)
+
+        scores += rouge.get_scores(hyp, ref)[0]['rouge-l']['f']
+
+    r_l = scores/result.shape[0]
+    return r_l

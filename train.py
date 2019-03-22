@@ -164,7 +164,7 @@ if __name__ == '__main__':
     # rouge initalization
     open(config.filename_rouge, 'w')
 
-    model = build_model(config)
+    model = build_model(config, vocab.idx2word)
     if torch.cuda.is_available():
         model = model.cuda()
 

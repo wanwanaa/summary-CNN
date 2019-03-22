@@ -78,6 +78,7 @@ class Decoder(nn.Module):
         self.cell = config.cell
         self.intra_decoder = config.intra_decoder
         self.cnn = config.cnn
+        self.rl = config.rl
 
         if config.cell == 'lstm':
             self.rnn = nn.LSTM(
@@ -139,6 +140,10 @@ class Decoder(nn.Module):
             else:
                 attn_weights, e = self.attention(e, h, encoder_output)
         out, h = self.rnn(e, h)
+        if self.rl:
+            baseline = out
+        else:
+            baseline = None
 
         # cnn prob
         if self.cnn == 2:
@@ -156,10 +161,10 @@ class Decoder(nn.Module):
 
         if self.attn_flag == 'luong':
             attn_weights, out = self.attention(out, encoder_output)
-        if self.attn_flag == 'mulit':
+        if self.attn_flag == 'multi':
             attn_weights, out = self.attention(h[0].transpose(0, 1), encoder_output)
         if self.intra_decoder:
             attn_weights, c = self.intra_attention(out, outs)
             out = self.linear_intra(torch.cat((out, c), dim=-1))
 
-        return attn_weights, out, h
+        return attn_weights, baseline, out, h
