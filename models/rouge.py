@@ -36,6 +36,8 @@ def rouge_l(result, gold, idx2word):
     """
     scores = 0
     rouge = Rouge()
+    result = result.cpu()
+    gold = gold.cpu()
     result = np.array(result)
     gold = np.array(gold)
     for i in range(result.shape[0]):

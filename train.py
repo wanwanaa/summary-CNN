@@ -167,6 +167,10 @@ if __name__ == '__main__':
     # load
     model = build_model(config, vocab.idx2word)
 
+    # reinforcement learning
+    if config.rl == 1:
+        filename = config.filename_model + 'model.pkl'
+
     # # load model reinforcement learning
     # filename = config.filename_model + 'model_10.pkl'
     # model = build_model(config, vocab.idx2word)

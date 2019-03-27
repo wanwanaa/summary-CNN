@@ -109,11 +109,18 @@ class Seq2seq(nn.Module):
                 baseline.append(self.output_layer(b).squeeze())
 
         outputs = torch.stack(result).transpose(0, 1)
-        loss = self.compute_loss(outputs, y)
-        if self.config.rl != 0:
+        
+        if self.config.rl == 0:
+            loss = self.compute_loss(outputs, y)
+        elif self.config.rl ==1:
+            loss = self.compute_loss(outputs, y)
             baseline = torch.stack(baseline).transpose(0, 1)
             loss_lr = self.rl_loss(baseline, outputs, y)
-        if self.config.rl == 2:
+            loss = loss + loss_lr
+        else:
+            loss = self.compute_loss(outputs, y)
+            baseline = torch.stack(baseline).transpose(0, 1)
+            loss_lr = self.rl_loss(baseline, outputs, y)
             loss = loss + loss_lr
         return loss, outputs
 
@@ -121,7 +128,7 @@ class Seq2seq(nn.Module):
         h, encoder_out = self.encoder(x)
         cnn_out = self.cnn(x)
 
-        if self.config.cnn_cat == 1:
+        if self.config.cnn == 1:
             hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
             h = (hidden, h[1])
             cnn_out = None
@@ -141,7 +148,7 @@ class Seq2seq(nn.Module):
                 out = out.type(torch.cuda.LongTensor)
             else:
                 out = out.type(torch.LongTensor)
-            _, out, h = self.decoder(out, h, encoder_out, cnn_out, outs)
+            _, _, out, h = self.decoder(out, h, encoder_out, cnn_out, outs)
             if self.config.intra_decoder:
                 if i == 0:
                     outs = h[0].transpose(0, 1)[:, 1, :].unsqueeze(1)
@@ -161,7 +168,7 @@ class Seq2seq(nn.Module):
         h, encoder_out = self.encoder(x)
         cnn_out = self.cnn(x)
 
-        if self.config.cnn_cat == 1:
+        if self.config.cnn == 1:
             hidden = self.linear_cnn(torch.cat((h[0], cnn_out), dim=-1))
             h = (hidden, h[1])
             cnn_out = None
@@ -210,7 +217,7 @@ class Seq2seq(nn.Module):
 
             # out (batch_size*beam_size, 1, vocab_size)
             # h (n_layer, batch_size*beam_size, hidden_size)
-            _, out, h = self.decoder(out, h, encoder_out, cnn_out, outs)
+            _, _, out, h = self.decoder(out, h, encoder_out, cnn_out, outs)
 
             if self.config.intra_decoder:
                 if i == 0:
