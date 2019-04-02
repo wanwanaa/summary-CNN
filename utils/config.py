@@ -37,7 +37,7 @@ class Config():
 
         # Hyper Parameters
         self.LR = 0.0003
-        self.batch_size = 256
+        self.batch_size = 2
         self.iters = 10000
         self.embedding_dim = 512
         self.hidden_size = 512
@@ -50,7 +50,7 @@ class Config():
         self.bidirectional = True
         self.optimzer = 'Adam'
         self.intra_decoder = False
-        self.cnn = 2 # cnn=0: no cnn
+        self.cnn = 1 # cnn=0: no cnn
                      # cnn=1: cat
                      # cnn=2: prob
         # reinforcement learning

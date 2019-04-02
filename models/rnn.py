@@ -116,7 +116,14 @@ class Decoder(nn.Module):
                 nn.SELU(),
                 nn.Linear(config.hidden_size, config.hidden_size)
             )
-
+            # cat (LSTM, CNN) -> vector ues to compute prob
+            self.linear_enc_cnn = nn.Sequential(
+                nn.Linear(config.hidden_size*2, config.hidden_size),
+                nn.SELU(),
+                nn.Linear(config.hidden_size, config.hidden_size)
+            )
+            self.sigmoid = nn.Sigmoid()
+            
         # intra-decoder
         if self.intra_decoder:
             self.intra_attention = Luong_Attention(config)
@@ -155,7 +162,14 @@ class Decoder(nn.Module):
             else:
                 h_cnn = self.linear_enc(h[-1]).unsqueeze(2)
             # (batch, t_len, 1)
-            prob = torch.bmm(encoder, h_cnn)
+            # prob = torch.bmm(encoder, h_cnn)
+            # prob = self.sigmoid(prob)
+
+            # cat(lstm,cnn)
+            vector = torch.cat(encoder_output, cnn_out)
+            vector = self.linear_enc_cnn(vector)
+            prob = torch.bmm(vector, h_cnn)
+            prob = self.sigmoid(prob)
 
             encoder_output = prob*encoder_output + (1-prob)*cnn_out
 

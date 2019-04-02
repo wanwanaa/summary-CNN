@@ -109,7 +109,7 @@ class Seq2seq(nn.Module):
                 baseline.append(self.output_layer(b).squeeze())
 
         outputs = torch.stack(result).transpose(0, 1)
-        
+
         if self.config.rl == 0:
             loss = self.compute_loss(outputs, y)
         elif self.config.rl ==1:
