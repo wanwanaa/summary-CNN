@@ -123,7 +123,7 @@ class Decoder(nn.Module):
                 nn.Linear(config.hidden_size, config.hidden_size)
             )
             self.sigmoid = nn.Sigmoid()
-            
+
         # intra-decoder
         if self.intra_decoder:
             self.intra_attention = Luong_Attention(config)
@@ -161,12 +161,13 @@ class Decoder(nn.Module):
                 h_cnn = self.linear_enc(h[0][-1]).unsqueeze(2)
             else:
                 h_cnn = self.linear_enc(h[-1]).unsqueeze(2)
+
             # (batch, t_len, 1)
             # prob = torch.bmm(encoder, h_cnn)
             # prob = self.sigmoid(prob)
 
             # cat(lstm,cnn)
-            vector = torch.cat(encoder_output, cnn_out)
+            vector = torch.cat(encoder, cnn_out)
             vector = self.linear_enc_cnn(vector)
             prob = torch.bmm(vector, h_cnn)
             prob = self.sigmoid(prob)

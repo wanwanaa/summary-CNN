@@ -95,7 +95,9 @@ def train(model, args, config, idx2word):
     test_loss = []
     test_rouge = []
 
-    for e in range(args.epoch):
+    if args.checkpoint != 0:
+        model.load_state_dict(torch.load(config.filename_model + 'model_' + str(args.checkpoint) + '.pkl'))
+    for e in range(args.checkpoint, args.epoch):
         model.train()
         all_loss = 0
         num = 0
@@ -147,6 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_layers', '-n', type=int, default=2, help='number of gru layers')
     parser.add_argument('-seed', '-s', type=int, default=123, help="Random seed")
     parser.add_argument('--save_model', '-m', action='store_true', default=False, help="whether to save model")
+    parser.add_argument('--checkpoint', '-c', type=int, default=0, help="load model")
     args = parser.parse_args()
 
     ########test##########
