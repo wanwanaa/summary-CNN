@@ -50,11 +50,11 @@ class Config():
         self.bidirectional = True
         self.optimzer = 'Adam'
         self.intra_decoder = False
-        self.cnn = 1 # cnn=0: no cnn
+        self.cnn = 2 # cnn=0: no cnn
                      # cnn=1: cat
                      # cnn=2: prob
         # reinforcement learning
-        self.rl = 0 # 0: ML
+        self.rl = 2 # 0: ML
                     # 1: RL
                     # 2: ML+RL
         self.r = 0.99

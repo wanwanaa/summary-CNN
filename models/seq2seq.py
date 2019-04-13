@@ -174,7 +174,7 @@ class Seq2seq(nn.Module):
             cnn_out = None
 
         encoder_out = encoder_out.repeat(1, self.beam_size, 1).view(-1, self.config.t_len, self.config.hidden_size)
-        if cnn_out:
+        if cnn_out is not None:
             cnn_out = cnn_out.repeat(1, self.beam_size, 1).view(-1, self.config.t_len, self.config.hidden_size)
 
         # initial beam
